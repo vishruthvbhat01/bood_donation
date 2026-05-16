@@ -16,7 +16,8 @@ const pages = {
   requests: renderRequests,
   'new-request': renderNewRequest,
   stock: renderStock,
-  search: renderSearch
+  search: renderSearch,
+  history: renderHistory
 };
 
 const titles = {
@@ -26,7 +27,8 @@ const titles = {
   requests: 'Blood Requests',
   'new-request': 'Submit Blood Request',
   stock: 'Blood Stock Management',
-  search: 'Search Donors'
+  search: 'Search Donors',
+  history: 'Donation History'
 };
 
 let currentPage = 'dashboard';
@@ -674,3 +676,61 @@ function clearSearch() {
 
 // ========= INIT =========
 navigate('dashboard');
+
+// ========= DONATION HISTORY =========
+async function renderHistory() {
+  document.getElementById('content').innerHTML = '<div class="loading">Loading History...</div>';
+  const res = await api.get('/donors');
+  const donors = res.success ? res.data : [];
+
+  // Filter donors who have donated (totalDonations > 0 or lastDonated exists)
+  // and sort by lastDonated descending. If lastDonated is missing but totalDonations > 0, 
+  // we use createdAt or just skip.
+  const historyDonors = donors
+    .filter(d => d.totalDonations > 0 && d.lastDonated)
+    .sort((a, b) => new Date(b.lastDonated) - new Date(a.lastDonated));
+
+  if (historyDonors.length === 0) {
+    document.getElementById('content').innerHTML = `
+      <div class="card">
+        <div class="card-header"><div class="card-title">Recent Donations</div></div>
+        <div class="empty-state">
+          <div class="empty-icon">◷</div>
+          <p>No donation history found. Mark a donor as 'Donated' to see records here.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="card" style="max-width:800px; margin: 0 auto;">
+      <div class="card-header">
+        <div class="card-title">Recent Donations Log</div>
+      </div>
+      <div class="timeline">
+        ${historyDonors.map(d => `
+          <div class="timeline-item">
+            <div class="timeline-date">${formatDate(d.lastDonated)}</div>
+            <div class="timeline-content">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:16px;">
+                  <div class="recent-avatar" style="width:48px; height:48px; font-size:16px;">${initials(d.name)}</div>
+                  <div>
+                    <div class="timeline-title">${d.name} donated blood</div>
+                    <div style="font-size:14px; color:var(--text-muted);">
+                      Registered City: ${d.city} &bull; Total Donations: ${d.totalDonations}
+                    </div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <span class="bg-badge" style="font-size:18px; padding:6px 16px;">${d.bloodGroup}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}

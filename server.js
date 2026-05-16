@@ -9,7 +9,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, './frontend')));
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/blooddonation')
@@ -23,8 +23,8 @@ app.use('/api/stock', require('./routes/stock'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Serve frontend for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, './frontend/index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
