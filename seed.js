@@ -37,9 +37,11 @@ const stock = [
   { bloodGroup: 'O-', unitsAvailable: 3 }
 ];
 
-async function seed() {
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/blooddonation');
-  console.log('Connected to MongoDB');
+async function seed(disconnect = true) {
+  if (disconnect) {
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/blooddonation');
+    console.log('Connected to MongoDB');
+  }
 
   await Donor.deleteMany({});
   await BloodRequest.deleteMany({});
@@ -53,7 +55,14 @@ async function seed() {
   console.log(`  - ${donors.length} donors`);
   console.log(`  - ${requests.length} blood requests`);
   console.log(`  - ${stock.length} blood stock entries`);
-  process.exit(0);
+  if (disconnect) {
+    mongoose.disconnect();
+    process.exit(0);
+  }
 }
 
-seed().catch(err => { console.error(err); process.exit(1); });
+if (require.main === module) {
+  seed(true).catch(err => { console.error(err); process.exit(1); });
+}
+
+module.exports = seed;

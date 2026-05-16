@@ -98,6 +98,13 @@ router.patch('/:id/donate', async (req, res) => {
       { new: true }
     );
     if (!donor) return res.status(404).json({ success: false, message: 'Donor not found' });
+    
+    // Update blood stock
+    await BloodStock.findOneAndUpdate(
+      { bloodGroup: donor.bloodGroup },
+      { $inc: { unitsAvailable: 1 }, $set: { lastUpdated: new Date() } }
+    );
+
     res.json({ success: true, message: 'Donation recorded!', data: donor });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

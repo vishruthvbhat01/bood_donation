@@ -11,10 +11,27 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, './frontend')));
 
+const { MongoMemoryServer } = require('mongodb-memory-server');
+const seed = require('./seed');
+
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/blooddonation')
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Connection Error:', err));
+async function connectDB() {
+  try {
+    // Try local connection first with a fast timeout
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/blooddonation', {
+      serverSelectionTimeoutMS: 2000
+    });
+    console.log('✅ MongoDB Connected');
+  } catch (err) {
+    console.log('⚠️ Local MongoDB not found. Starting in-memory database...');
+    const mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
+    console.log('✅ In-Memory MongoDB Connected');
+    await seed(false); // populate with dummy data since it's empty
+  }
+}
+connectDB();
 
 // Routes
 app.use('/api/donors', require('./routes/donors'));
